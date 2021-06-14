@@ -432,6 +432,12 @@ class ResolveSessionCatalog(
         isOverwrite,
         partition)
 
+    case UploadData(ResolvedV1TableIdentifier(ident), path, isOverwrite) =>
+      UploadDataCommand(
+        ident.asTableIdentifier,
+        path,
+        isOverwrite)
+
     case ShowCreateTable(ResolvedV1TableOrViewIdentifier(ident), asSerde) =>
       if (asSerde) {
         ShowCreateTableAsSerdeCommand(ident.asTableIdentifier)

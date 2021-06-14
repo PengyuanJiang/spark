@@ -228,6 +228,8 @@ statement
     | CLEAR CACHE                                                      #clearCache
     | LOAD DATA LOCAL? INPATH path=STRING OVERWRITE? INTO TABLE
         multipartIdentifier partitionSpec?                             #loadData
+    | UPLOAD DATA INPATH path=STRING OVERWRITE? INTO TABLE
+        multipartIdentifier                                            #uploadData
     | TRUNCATE TABLE multipartIdentifier partitionSpec?                #truncateTable
     | MSCK REPAIR TABLE multipartIdentifier                            #repairTable
     | op=(ADD | LIST) identifier (STRING | .*?)                        #manageResource
@@ -1190,6 +1192,7 @@ ansiNonReserved
     | UNLOCK
     | UNSET
     | UPDATE
+    | UPLOAD
     | USE
     | VALUES
     | VIEW
@@ -1452,6 +1455,7 @@ nonReserved
     | UNLOCK
     | UNSET
     | UPDATE
+    | UPLOAD
     | USE
     | USER
     | VALUES
@@ -1710,6 +1714,7 @@ UNKNOWN: 'UNKNOWN';
 UNLOCK: 'UNLOCK';
 UNSET: 'UNSET';
 UPDATE: 'UPDATE';
+UPLOAD: 'UPLOAD';
 USE: 'USE';
 USER: 'USER';
 USING: 'USING';

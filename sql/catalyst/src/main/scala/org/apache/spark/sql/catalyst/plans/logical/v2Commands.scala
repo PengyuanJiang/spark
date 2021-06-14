@@ -676,6 +676,13 @@ case class LoadData(
   override def children: Seq[LogicalPlan] = child :: Nil
 }
 
+case class UploadData(
+     child: LogicalPlan,
+     path: String,
+     isOverwrite: Boolean) extends Command {
+  override def children: Seq[LogicalPlan] = child :: Nil
+}
+
 /**
  * The logical plan of the SHOW CREATE TABLE command.
  */

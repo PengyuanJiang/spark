@@ -3583,6 +3583,18 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with SQLConfHelper with Logg
   }
 
   /**
+   *
+   * @param ctx the parse tree
+   *
+   */
+  override def visitUploadData(ctx: UploadDataContext): LogicalPlan = withOrigin(ctx) {
+    UploadData(
+      child = UnresolvedTable(visitMultipartIdentifier(ctx.multipartIdentifier()), "UPLOAD DATA"),
+      path = string(ctx.path),
+      isOverwrite = ctx.OVERWRITE != null)
+  }
+
+  /**
    * Creates a [[ShowCreateTable]]
    */
   override def visitShowCreateTable(ctx: ShowCreateTableContext): LogicalPlan = withOrigin(ctx) {
