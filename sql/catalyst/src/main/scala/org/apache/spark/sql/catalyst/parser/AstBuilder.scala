@@ -3584,7 +3584,7 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with SQLConfHelper with Logg
 
   /**
    *
-   * @param ctx the parse tree
+   * Create a [[UploadData]]
    *
    */
   override def visitUploadData(ctx: UploadDataContext): LogicalPlan = withOrigin(ctx) {
