@@ -516,6 +516,14 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder(conf) {
     )
   }
 
+  override def visitUploadData(ctx: UploadDataContext): LogicalPlan = withOrigin(ctx) {
+    UploadDataCommand(
+      table = visitTableIdentifier(ctx.tableIdentifier),
+      path = string(ctx.path),
+      isOverwrite = ctx.OVERWRITE != null
+    )
+  }
+
   /**
    * Create a [[TruncateTableCommand]] command.
    *

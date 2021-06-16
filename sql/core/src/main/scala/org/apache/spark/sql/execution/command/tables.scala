@@ -398,6 +398,86 @@ object LoadDataCommand {
   }
 }
 
+case class UploadDataCommand(
+    table: TableIdentifier,
+    path: String,
+    isOverwrite: Boolean) extends RunnableCommand{
+
+  override def run(sparkSession: SparkSession): Seq[Row] = {
+    val catalog = sparkSession.sessionState.catalog
+    val targetTable = catalog.getTableMetadata(table)
+    val tableIdentwithDB = targetTable.identifier.quotedString
+
+    if (targetTable.tableType == CatalogTableType.VIEW) {
+      throw new AnalysisException(s"Target table in LOAD DATA cannot be a view: $tableIdentwithDB")
+    }
+    if (DDLUtils.isDatasourceTable(targetTable)) {
+      throw new AnalysisException(
+        s"LOAD DATA is not supported for datasource tables: $tableIdentwithDB")
+    }
+
+    val loadPath = {
+      val localFS = FileContext.getLocalFSFileContext()
+      UploadDataCommand.makeQualified(FsConstants.LOCAL_FS_URI, localFS.getWorkingDirectory(),
+        new Path(path))
+    }
+    val fs = loadPath.getFileSystem(sparkSession.sessionState.newHadoopConf())
+    try {
+      val fileStatus = fs.globStatus(loadPath)
+      if (fileStatus == null || fileStatus.isEmpty) {
+        throw new AnalysisException(s"LOAD DATA input path does not exist: $path")
+      }
+    } catch {
+      case e: IllegalArgumentException =>
+        log.warn(s"Exception while validating the load path $path ", e)
+        throw new AnalysisException(s"LOAD DATA input path does not exist: $path")
+    }
+    catalog.loadTable(
+      targetTable.identifier,
+      loadPath.toString,
+      isOverwrite,
+      isSrcLocal = true)
+
+    // Refresh the metadata cache to ensure the data visible to the users
+    catalog.refreshTable(targetTable.identifier)
+
+    CommandUtils.updateTableStats(sparkSession, targetTable)
+    Seq.empty[Row]
+  }
+}
+
+object UploadDataCommand{
+  /**
+   * Returns a qualified path object. Method ported from org.apache.hadoop.fs.Path class.
+   *
+   * @param defaultUri default uri corresponding to the filesystem provided.
+   * @param workingDir the working directory for the particular child path wd-relative names.
+   * @param path       Path instance based on the path string specified by the user.
+   * @return qualified path object
+   */
+  private[sql] def makeQualified(defaultUri: URI, workingDir: Path, path: Path): Path = {
+    val pathUri = if (path.isAbsolute()) path.toUri() else new Path(workingDir, path).toUri()
+    if (pathUri.getScheme == null || pathUri.getAuthority == null &&
+      defaultUri.getAuthority != null) {
+      val scheme = if (pathUri.getScheme == null) defaultUri.getScheme else pathUri.getScheme
+      val authority = if (pathUri.getAuthority == null) {
+        if (defaultUri.getAuthority == null) "" else defaultUri.getAuthority
+      } else {
+        pathUri.getAuthority
+      }
+      try {
+        val newUri = new URI(scheme, authority, pathUri.getPath, null, pathUri.getFragment)
+        new Path(newUri)
+      } catch {
+        case e: URISyntaxException =>
+          throw new IllegalArgumentException(e)
+      }
+    } else {
+      path
+    }
+  }
+}
+
 /**
  * A command to truncate table.
  *
