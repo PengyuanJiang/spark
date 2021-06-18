@@ -460,10 +460,22 @@ case class UploadDataCommand(
          s"UPLOAD DATA is not supported for datasource tables: $tableIdentwithDB")
      }
 
+     val schema = StructType(
+       Array(
+         StructField("id", IntegerType, true),
+         StructField("name", StringType, true),
+       )
+     )
+
+     var df = sparkSession.read.format("com.databricks.spark.csv")
+       .schema(schema).option("delimiter",",").csv("file://"+path)
+     var newPath = "/Users/jiangpengyuan/Downloads/parquet"
+     df.write.parquet(newPath)
+
      var loadPath = {
        var localFS = FileContext.getLocalFSFileContext()
        UploadDataCommand.makeQualified(FsConstants.LOCAL_FS_URI, localFS.getWorkingDirectory(),
-         new Path(path))
+         new Path(newPath))
      }
 
      val fs = loadPath.getFileSystem(sparkSession.sessionState.newHadoopConf())
@@ -471,12 +483,12 @@ case class UploadDataCommand(
      try {
        val fileStatus = fs.globStatus(loadPath)
        if (fileStatus == null || fileStatus.isEmpty) {
-         throw new AnalysisException(s"UPLOAD DATA input path does not exist: $path")
+         throw new AnalysisException(s"UPLOAD DATA input path does not exist: $newPath")
        }
      } catch {
        case e: IllegalArgumentException =>
-         log.warn(s"Exception while validating the load path $path ", e)
-         throw new AnalysisException(s"UPLOAD DATA input path does not exist: $path")
+         log.warn(s"Exception while validating the load path $newPath ", e)
+         throw new AnalysisException(s"UPLOAD DATA input path does not exist: $newPath")
      }
 
      catalog.loadTable(
