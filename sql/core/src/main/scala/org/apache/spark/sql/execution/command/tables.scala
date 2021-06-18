@@ -469,8 +469,10 @@ case class UploadDataCommand(
 
      var df = sparkSession.read.format("com.databricks.spark.csv")
        .schema(schema).option("delimiter",",").csv("file://"+path)
-     var newPath = "/Users/jiangpengyuan/Downloads/parquet"
+     var newPath = "/Users/jiangpengyuan/Downloads/parquet"+ scala.util.Random.nextInt(100).toString
      df.write.parquet(newPath)
+     log.info(s"the parquet new path is $newPath ")
+
 
      var loadPath = {
        var localFS = FileContext.getLocalFSFileContext()
@@ -497,6 +499,9 @@ case class UploadDataCommand(
        isOverwrite,
        true
      )
+
+     //delete temp file
+     fs.delete(new Path(newPath), true)
 
      // Refresh the data and metadata cache to ensure the data visible to the users
      sparkSession.catalog.refreshTable(tableIdentwithDB)
